@@ -113,3 +113,4 @@ obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_MMI) += synaptics_mmi/
 #obj-$(CONFIG_TOUCHSCREEN_HIMAX_CHIPSET)	+= hxchipset/
 obj-$(CONFIG_TOUCHSCREEN_HIMAX_I2C) 	+= himax_mmi/
 obj-$(CONFIG_TOUCHSCREEN_NT36xxx)		+= nova_mmi/
+obj-$(CONFIG_TOUCHSCREEN_ILI9881H) += ilitek_mmi/
