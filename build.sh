@@ -9,11 +9,6 @@ TC_DIR="$(pwd)/tc/clang-r450784e"
 AK3_DIR="$(pwd)/android/AnyKernel3"
 DEFCONFIG="aljeter_defconfig"
 
-if test -z "$(git rev-parse --show-cdup 2>/dev/null)" &&
-   head=$(git rev-parse --verify HEAD 2>/dev/null); then
-	ZIPNAME="${ZIPNAME::-4}-$(echo $head | cut -c1-8).zip"
-fi
-
 export PATH="$TC_DIR/bin:$PATH"
 
 if ! [ -d "$TC_DIR" ]; then
@@ -24,22 +19,18 @@ if ! [ -d "$TC_DIR" ]; then
 	fi
 fi
 
-if [[ $1 = "-r" || $1 = "--regen" ]]; then
-	make O=out ARCH=arm64 $DEFCONFIG savedefconfig
-	cp out/defconfig arch/arm64/configs/$DEFCONFIG
-	echo -e "\nSuccessfully regenerated defconfig at $DEFCONFIG"
-	exit
+if [[ $1 = "-m" || $1 = "--main" ]]; then
+        git submodule update --init --recursive
+        echo -e "\nKernelSU main branch successfully fetched"
 fi
 
-if [[ $1 = "-rf" || $1 = "--regen-full" ]]; then
-	make O=out ARCH=arm64 $DEFCONFIG
-	cp out/.config arch/arm64/configs/$DEFCONFIG
-	echo -e "\nSuccessfully regenerated full defconfig at $DEFCONFIG"
-	exit
-fi
-
-if [[ $1 = "-c" || $1 = "--clean" ]]; then
-	rm -rf out
+if [[ $1 = "-s" || $1 = "--stable" ]]; then
+    submodule_path="KernelSU"
+    cd "$submodule_path" || exit
+    git fetch origin --tags
+    latest_tag=$(git describe --tags "$(git rev-list --tags --max-count=1)")
+    git checkout "$latest_tag"
+        echo -e "\nKernelSU stable successfully fetched"
 fi
 
 mkdir -p out
