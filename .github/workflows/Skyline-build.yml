@@ -10,7 +10,7 @@ on:
         description: 'Argumento para o script de build'
         required: true
     branches:
-      - rebase
+      - topaz
 
 jobs:
   build:
