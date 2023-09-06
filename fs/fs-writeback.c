@@ -1096,10 +1096,9 @@ void sb_clear_inode_writeback(struct inode *inode)
  * the case then the inode must have been redirtied while it was being written
  * out and we don't reset its dirtied_when.
  */
-static void redirty_tail_locked(struct inode *inode, struct bdi_writeback *wb)
+static void __redirty_tail(struct inode *inode, struct bdi_writeback *wb)
 {
 	assert_spin_locked(&inode->i_lock);
-
 	if (!list_empty(&wb->b_dirty)) {
 		struct inode *tail;
 
@@ -1114,7 +1113,7 @@ static void redirty_tail_locked(struct inode *inode, struct bdi_writeback *wb)
 static void redirty_tail(struct inode *inode, struct bdi_writeback *wb)
 {
 	spin_lock(&inode->i_lock);
-	redirty_tail_locked(inode, wb);
+	__redirty_tail(inode, wb);
 	spin_unlock(&inode->i_lock);
 }
 
@@ -1325,7 +1324,7 @@ static void requeue_inode(struct inode *inode, struct bdi_writeback *wb,
 		 * writeback is not making progress due to locked
 		 * buffers. Skip this inode for now.
 		 */
-		redirty_tail_locked(inode, wb);
+		__redirty_tail(inode, wb);
 		return;
 	}
 
@@ -1345,7 +1344,7 @@ static void requeue_inode(struct inode *inode, struct bdi_writeback *wb,
 			 * retrying writeback of the dirty page/inode
 			 * that cannot be performed immediately.
 			 */
-			redirty_tail_locked(inode, wb);
+			__redirty_tail(inode, wb);
 		}
 	} else if (inode->i_state & I_DIRTY) {
 		/*
@@ -1353,7 +1352,7 @@ static void requeue_inode(struct inode *inode, struct bdi_writeback *wb,
 		 * such as delayed allocation during submission or metadata
 		 * updates after data IO completion.
 		 */
-		redirty_tail_locked(inode, wb);
+		__redirty_tail(inode, wb);
 	} else if (inode->i_state & I_DIRTY_TIME) {
 		inode->dirtied_when = jiffies;
 		inode_io_list_move_locked(inode, wb, &wb->b_dirty_time);
@@ -1602,7 +1601,8 @@ static long writeback_sb_inodes(struct super_block *sb,
 		 */
 		spin_lock(&inode->i_lock);
 		if (inode->i_state & (I_NEW | I_FREEING | I_WILL_FREE)) {
-			redirty_tail_locked(inode, wb);
+			inode->i_state &= ~I_SYNC_QUEUED;
+			__redirty_tail(inode, wb);
 			spin_unlock(&inode->i_lock);
 			continue;
 		}
