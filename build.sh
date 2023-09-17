@@ -7,6 +7,7 @@ SECONDS=0 # builtin bash timer
 ZIPNAME="Skyline-aljeter-$(date '+%Y%m%d-%H%M').zip"
 TC_DIR="$(pwd)/tc/clang-r450784e"
 AK3_DIR="$(pwd)/android/AnyKernel3"
+KSU_DIR="$(pwd)/KernelSU"
 DEFCONFIG="aljeter_defconfig"
 
 export PATH="$TC_DIR/bin:$PATH"
@@ -19,18 +20,12 @@ if ! [ -d "$TC_DIR" ]; then
 	fi
 fi
 
-if [[ $1 = "-m" || $1 = "--main" ]]; then
-        git submodule update --init --recursive
-        echo -e "\nKernelSU main branch successfully fetched"
-fi
-
-if [[ $1 = "-s" || $1 = "--stable" ]]; then
-    submodule_path="KernelSU"
-    cd "$submodule_path" || exit
-    git fetch origin --tags
-    latest_tag=$(git describe --tags "$(git rev-list --tags --max-count=1)")
-    git checkout "$latest_tag"
-        echo -e "\nKernelSU stable successfully fetched"
+if ! [ -d "$KSU_DIR" ]; then
+        echo "KernelSU not found! Cloning to $KSU_DIR..."
+        if ! curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash - ; then
+                echo "Cloning failed! Aborting..."
+                exit 1
+        fi
 fi
 
 mkdir -p out
