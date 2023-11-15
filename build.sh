@@ -1,13 +1,11 @@
 #!/bin/bash
 #
-# Compile script for Skyline kernel
 # Copyright (C) 2020-2021 Adithya R.
 
 SECONDS=0 # builtin bash timer
 ZIPNAME="Skyline-aljeter-$(date '+%Y%m%d-%H%M').zip"
 TC_DIR="$(pwd)/tc/clang-r450784e"
 AK3_DIR="$(pwd)/android/AnyKernel3"
-KSU_DIR="$(pwd)/KernelSU"
 DEFCONFIG="aljeter_defconfig"
 
 export PATH="$TC_DIR/bin:$PATH"
@@ -20,12 +18,15 @@ if ! [ -d "$TC_DIR" ]; then
 	fi
 fi
 
-if ! [ -d "$KSU_DIR" ]; then
-        echo "KernelSU not found! Cloning to $KSU_DIR..."
-        if ! curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash - ; then
-                echo "Cloning failed! Aborting..."
-                exit 1
-        fi
+read -p "Do you want to use KernelSU? (y/n): " RESPONSE1
+read -p "Do you want to upload to TELEGRAM? (y/n): " RESPONSE2
+
+if [ "$RESPONSE1" == "y" ]; then
+    curl -LSs "https://raw.githubusercontent.com/tiann/KernelSU/main/kernel/setup.sh" | bash -
+    sed -i 's/# CONFIG_KSU is not set/CONFIG_KSU=y/' arch/arm64/configs/$DEFCONFIG
+        echo "KernelSU Enabled!"
+    else
+        echo "KernelSU Disabled!"
 fi
 
 mkdir -p out
@@ -40,7 +41,7 @@ if [ -f "$kernel" ]; then
 	echo -e "\nKernel compiled succesfully! Zipping up...\n"
 	if [ -d "$AK3_DIR" ]; then
 		cp -r $AK3_DIR AnyKernel3
-	elif ! git clone -q https://github.com/SH4ND/AnyKernel3 -b master; then
+	elif ! git clone -q git@github.com:SHAND-stuffs/AnyKernel3 -b master; then
 		echo -e "\nAnyKernel3 repo not found locally and couldn't clone from GitHub! Aborting..."
 		exit 1
 	fi
@@ -50,10 +51,24 @@ if [ -f "$kernel" ]; then
 	git checkout master &> /dev/null
 	zip -r9 "../$ZIPNAME" * -x .git README.md *placeholder
 	cd ..
-	rm -rf AnyKernel3
+	rm -rf AnyKernel3 out KernelSU
+	git restore arch/arm64/configs/$DEFCONFIG drivers/Kconfig
 	echo -e "\nCompleted in $((SECONDS / 60)) minute(s) and $((SECONDS % 60)) second(s) !"
 	echo "Zip: $ZIPNAME"
 else
 	echo -e "\nCompilation failed!"
 	exit 1
+fi
+
+if [ "$RESPONSE2" == "y" ]; then
+    if [ -d "upload" ]; then
+        chmod +x upload/upload.sh
+        ./upload/upload.sh
+	rm Skyline-aljeter-*.zip
+else
+        git clone -b aljeter git@github.com:SHAND-stuffs/upload-telegram.git upload
+        chmod +x upload/upload.sh
+        ./upload/upload.sh
+	rm Skyline-aljeter-*.zip
+    fi
 fi

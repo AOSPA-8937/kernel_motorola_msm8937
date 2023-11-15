@@ -120,5 +120,7 @@ all.config
 kernel/configs/android-*.cfg
 
 # Object directory
+KernelSU/
+upload/
 out/
 tc/
